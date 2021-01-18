@@ -1,18 +1,4 @@
 #!/usr/bin/env python3
-"""
-This is an exercise in secure symmetric-key encryption, implemented in pure
-Python (no external libraries needed).
-
-Original AES-128 implementation by Bo Zhu (http://about.bozhu.me) at 
-https://github.com/bozhu/AES-Python . PKCS#7 padding, CBC mode, PKBDF2, HMAC,
-byte array and string support added by me at https://github.com/boppreh/aes. 
-Other block modes contributed by @righthandabacus.
-
-
-Although this is an exercise, the `encrypt` and `decrypt` functions should
-provide reasonable security to encrypted messages.
-"""
-
 
 s_box = (
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -134,42 +120,6 @@ def xor_bytes(a, b):
     """ Returns a new byte array with the elements xor'ed. """
     return bytes(i^j for i, j in zip(a, b))
 
-def inc_bytes(a):
-    """ Returns a new byte array with the value increment by 1 """
-    out = list(a)
-    for i in reversed(range(len(out))):
-        if out[i] == 0xFF:
-            out[i] = 0
-        else:
-            out[i] += 1
-            break
-    return bytes(out)
-
-def pad(plaintext):
-    """
-    Pads the given plaintext with PKCS#7 padding to a multiple of 16 bytes.
-    Note that if the plaintext size is a multiple of 16,
-    a whole block will be added.
-    """
-    padding_len = 16 - (len(plaintext) % 16)
-    padding = bytes([padding_len] * padding_len)
-    return plaintext + padding
-
-def unpad(plaintext):
-    """
-    Removes a PKCS#7 padding, returning the unpadded text and ensuring the
-    padding was correct.
-    """
-    padding_len = plaintext[-1]
-    assert padding_len > 0
-    message, padding = plaintext[:-padding_len], plaintext[-padding_len:]
-    assert all(p == padding_len for p in padding)
-    return message
-
-def split_blocks(message, block_size=16, require_padding=True):
-        assert len(message) % block_size == 0 or not require_padding
-        return [message[i:i+16] for i in range(0, len(message), block_size)]
-
 
 class AES:
     """
@@ -266,38 +216,3 @@ class AES:
         add_round_key(cipher_state, self._key_matrices[0])
 
         return matrix2bytes(cipher_state)
-
-    def encrypt_cbc(self, plaintext, iv):
-        """
-        Encrypts `plaintext` using CBC mode and PKCS#7 padding, with the given
-        initialization vector (iv).
-        """
-        assert len(iv) == 16
-
-        plaintext = pad(plaintext)
-
-        blocks = []
-        previous = iv
-        for plaintext_block in split_blocks(plaintext):
-            # CBC mode encrypt: encrypt(plaintext_block XOR previous)
-            block = self.encrypt_block(xor_bytes(plaintext_block, previous))
-            blocks.append(block)
-            previous = block
-
-        return b''.join(blocks)
-
-    def decrypt_cbc(self, ciphertext, iv):
-        """
-        Decrypts `ciphertext` using CBC mode and PKCS#7 padding, with the given
-        initialization vector (iv).
-        """
-        assert len(iv) == 16
-
-        blocks = []
-        previous = iv
-        for ciphertext_block in split_blocks(ciphertext):
-            # CBC mode decrypt: previous XOR decrypt(ciphertext)
-            blocks.append(xor_bytes(previous, self.decrypt_block(ciphertext_block)))
-            previous = ciphertext_block
-
-        return unpad(b''.join(blocks))
