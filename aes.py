@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+import os
+import sys
+from array import array
 
 s_box = (
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -88,7 +91,6 @@ def mix_columns(s):
 
 
 def inv_mix_columns(s):
-    # see Sec 4.1.3 in The Design of Rijndael
     for i in range(4):
         u = xtime(xtime(s[i][0] ^ s[i][2]))
         v = xtime(xtime(s[i][1] ^ s[i][3]))
@@ -141,19 +143,21 @@ class AES:
         """
         Expands and returns a list of key matrices for the given master_key.
         """
+        # Wi = xor (Wi-4, sub_bytes(rot_word(Wi-1)), Rcon(4))
+
         # Initialize round keys with raw key material.
         key_columns = bytes2matrix(master_key)
-        iteration_size = len(master_key) // 4
+        iteration_size = len(master_key) // 4  # = 4
 
         # Each iteration has exactly as many columns as the key material.
-        columns_per_iteration = len(key_columns)
+        columns_per_iteration = len(key_columns)  #seems useless
         i = 1
         while len(key_columns) < (self.n_rounds + 1) * 4:
             # Copy previous word.
             word = list(key_columns[-1])
 
             # Perform schedule_core once every "row".
-            if len(key_columns) % iteration_size == 0:
+            if len(key_columns) % iteration_size == 0:  # Calcule les 4 premiers bytes de la clé
                 # Circular shift.
                 word.append(word.pop(0))
                 # Map to S-BOX.
@@ -161,17 +165,75 @@ class AES:
                 # XOR with first byte of R-CON, since the others bytes of R-CON are 0.
                 word[0] ^= r_con[i]
                 i += 1
-            elif len(master_key) == 32 and len(key_columns) % iteration_size == 4:
-                # Run word through S-box in the fourth iteration when using a
-                # 256-bit key.
-                word = [s_box[b] for b in word]
 
             # XOR with equivalent word from previous iteration.
-            word = xor_bytes(word, key_columns[-iteration_size])
+            word = xor_bytes(word, key_columns[-iteration_size]) 
             key_columns.append(word)
 
         # Group key words in 4x4 byte matrices.
         return [key_columns[4*i : 4*(i+1)] for i in range(len(key_columns) // 4)]
+
+
+    def inverse_expand_key(self, key):
+
+        r = 1
+        key_columns = bytes2matrix(key)
+        iteration_size = len(key) // 4
+        round_keys = []
+
+        # Slides 13, 12, 11 -> XOR operations
+        for i in range (1,11):
+            for i in range(1,4):
+                key_columns[iteration_size-i] = list(xor_bytes(key_columns[iteration_size-(i+1)], key_columns[iteration_size-i]))
+            
+            # word = opérations de shift + XOR rcon sur le 4e mot de next_key
+            word = list(key_columns[-1])
+            word.append(word.pop(0))
+            word = [s_box[b] for b in word]
+            word[0] ^= r_con[r]
+            r += 1
+
+            # XOR entre mot 1 de key et word
+            key_columns[-iteration_size] = list(xor_bytes(word, key_columns[-iteration_size]))
+            round_keys.append(matrix2bytes(key_columns))
+            
+        return round_keys
+    
+
+    
+    def inverse_expand_key_2(self, k10):
+        k = bytes2matrix(k10)   # k[i]   dans slides
+        previous_k = k          # k[i-1] dans slides
+        # 13/23
+        previous_k[0][3] = xor_bytes(k[0][2], k[0][3])
+        previous_k[1][3] = xor_bytes(k[1][2], k[1][3])
+        previous_k[2][3] = xor_bytes(k[2][2], k[2][3])
+        previous_k[3][3] = xor_bytes(k[3][2], k[3][3])
+        # 12/23
+        previous_k[0][2] = xor_bytes(k[0][1], k[0][2])
+        previous_k[1][2] = xor_bytes(k[1][1], k[1][2])
+        previous_k[2][2] = xor_bytes(k[2][1], k[2][2])
+        previous_k[3][2] = xor_bytes(k[3][1], k[3][2])
+        # 11/23
+        previous_k[0][1] = xor_bytes(k[0][0], k[0][1])
+        previous_k[1][1] = xor_bytes(k[1][0], k[1][1])
+        previous_k[2][1] = xor_bytes(k[2][0], k[2][1])
+        previous_k[3][1] = xor_bytes(k[3][0], k[3][1])
+        # 10/23
+        previous_k[0][0] = xor_bytes(k[0][0], r_con[0])
+        previous_k[1][0] = xor_bytes(k[1][0], r_con[1])
+        previous_k[2][0] = xor_bytes(k[2][0], r_con[2])
+        previous_k[3][0] = xor_bytes(k[3][0], r_con[3])
+        # 9/23
+        
+
+
+        return
+        
+
+
+    
+
 
     def encrypt_block(self, plaintext):
         """
