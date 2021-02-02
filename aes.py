@@ -225,15 +225,11 @@ class AES:
         previous_k[2][0] = xor_bytes(k[2][0], r_con[2])
         previous_k[3][0] = xor_bytes(k[3][0], r_con[3])
         # 9/23
-        
 
+        #inv_mix_col = [0,5,10,15,4,9,14,3,8,13,2,7,12,1,6,11]
 
         return
         
-
-
-    
-
 
     def encrypt_block(self, plaintext):
         """
@@ -278,3 +274,17 @@ class AES:
         add_round_key(cipher_state, self._key_matrices[0])
 
         return matrix2bytes(cipher_state)
+
+    def model_first_round(plaintext, targeted_byte, guess_key):
+        # plaintext : text en clair sous forme d'un tableau de 16 octets
+        # targeted_byte : n° de l'octet visé
+        # guess_key : k0
+        # retourne la sortie de la Sbox au premier tour de l'AES pour l'octet du plaintext concerné
+        return s_box(plain_text[targeted_byte]^guess_key)
+
+    def model_last_round(ciphertext, targeted_byte, guess_key):
+        # ciphertext : text chiffré sous forme d'un tableau de 16 octets
+        # targeted_byte : n° de l'octet visé
+        # guess_key : k10
+        # retourne l'entrée de la Sbox au dernier tour de l'AES pour l'octet du ciphertext concerné
+        return inv_s_box(ciphertext[targeted_byte]^guess_key)

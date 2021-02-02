@@ -1,4 +1,4 @@
-from aes import AES, bytes2matrix
+from aes import AES, bytes2matrix, model_first_round, model_last_round
 import os
 
 def main():
@@ -38,6 +38,8 @@ def main():
     print("Master Key : " + str(master_key))
     master_key=bytes2matrix(master_key)
     print(master_key)
+
+
 
 
 
