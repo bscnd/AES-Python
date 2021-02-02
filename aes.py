@@ -164,7 +164,7 @@ class AES:
 
         # Each iteration has exactly as many columns as the key material.
         columns_per_iteration = len(key_columns)  #seems useless
-        i = 1
+        i = 10 
         while len(key_columns) < (self.n_rounds + 1) * 4:
             # Copy previous word.
             word = list(key_columns[-1])
@@ -177,7 +177,7 @@ class AES:
                 word = [s_box[b] for b in word]
                 # XOR with first byte of R-CON, since the others bytes of R-CON are 0.
                 word[0] ^= r_con[i]
-                i += 1
+                i -= 1 
 
             # XOR with equivalent word from previous iteration.
             word = xor_bytes(word, key_columns[-iteration_size]) 

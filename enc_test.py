@@ -40,7 +40,7 @@ def main():
     master_key = b'aaaaaaaaaaaaaaaa'
     n_octet = 0
     sbox = model_first_round(plaintext, n_octet, (master_key))  # En décimal, à passer en hexa pour retrouver les valeurs de la table (99 = 0x63)
-    print("Sortie de la SBox au premier tour d'AES pour l'octet n°" + str(n_octet) + " : " + str(sbox))
+    print("Sortie de la SBox au premier tour d'AES pour l'octet n° " + str(n_octet) + " : " + str(sbox))
     
 if __name__ == "__main__":
     main()
