@@ -164,7 +164,7 @@ class AES:
 
         # Each iteration has exactly as many columns as the key material.
         columns_per_iteration = len(key_columns)  #seems useless
-        i = 10 
+        i = 1 
         while len(key_columns) < (self.n_rounds + 1) * 4:
             # Copy previous word.
             word = list(key_columns[-1])
@@ -177,7 +177,7 @@ class AES:
                 word = [s_box[b] for b in word]
                 # XOR with first byte of R-CON, since the others bytes of R-CON are 0.
                 word[0] ^= r_con[i]
-                i -= 1 
+                i += 1 
 
             # XOR with equivalent word from previous iteration.
             word = xor_bytes(word, key_columns[-iteration_size]) 
@@ -189,7 +189,7 @@ class AES:
 
     def inverse_expand_key(self, key):
 
-        r = 1
+        r = 10
         key_columns = bytes2matrix(key)
         iteration_size = len(key) // 4
         round_keys = []
@@ -204,7 +204,7 @@ class AES:
             word.append(word.pop(0))
             word = [s_box[b] for b in word]
             word[0] ^= r_con[r]
-            r += 1
+            r -= 1
 
             # XOR entre mot 1 de key et word
             key_columns[-iteration_size] = list(xor_bytes(word, key_columns[-iteration_size]))
@@ -212,37 +212,6 @@ class AES:
             
         return round_keys
     
-
-    
-    def inverse_expand_key_2(self, k10):
-        k = bytes2matrix(k10)   # k[i]   dans slides
-        previous_k = k          # k[i-1] dans slides
-        # 13/23
-        previous_k[0][3] = xor_bytes(k[0][2], k[0][3])
-        previous_k[1][3] = xor_bytes(k[1][2], k[1][3])
-        previous_k[2][3] = xor_bytes(k[2][2], k[2][3])
-        previous_k[3][3] = xor_bytes(k[3][2], k[3][3])
-        # 12/23
-        previous_k[0][2] = xor_bytes(k[0][1], k[0][2])
-        previous_k[1][2] = xor_bytes(k[1][1], k[1][2])
-        previous_k[2][2] = xor_bytes(k[2][1], k[2][2])
-        previous_k[3][2] = xor_bytes(k[3][1], k[3][2])
-        # 11/23
-        previous_k[0][1] = xor_bytes(k[0][0], k[0][1])
-        previous_k[1][1] = xor_bytes(k[1][0], k[1][1])
-        previous_k[2][1] = xor_bytes(k[2][0], k[2][1])
-        previous_k[3][1] = xor_bytes(k[3][0], k[3][1])
-        # 10/23
-        previous_k[0][0] = xor_bytes(k[0][0], r_con[0])
-        previous_k[1][0] = xor_bytes(k[1][0], r_con[1])
-        previous_k[2][0] = xor_bytes(k[2][0], r_con[2])
-        previous_k[3][0] = xor_bytes(k[3][0], r_con[3])
-        # 9/23
-
-        #inv_mix_col = [0,5,10,15,4,9,14,3,8,13,2,7,12,1,6,11]
-
-        return
-        
 
     def encrypt_block(self, plaintext):
         """
