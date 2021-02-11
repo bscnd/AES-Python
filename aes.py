@@ -122,19 +122,28 @@ def xor_bytes(a, b):
     """ Returns a new byte array with the elements xor'ed. """
     return bytes(i^j for i, j in zip(a, b))
 
-def model_first_round(plaintext, targeted_byte, guess_key):
-    # plaintext : text en clair sous forme d'un tableau de 16 octets
-    # targeted_byte : n° de l'octet visé
-    # guess_key : k0
-    # retourne la sortie de la Sbox au premier tour de l'AES pour l'octet du plaintext concerné
-    return s_box[plaintext[targeted_byte]^guess_key[targeted_byte]]
+def sbox_output_first_round(plaintext_value, key_value):  # Pour traces software
+    return s_box[plaintext_value^key_value]
 
-def model_last_round(ciphertext, targeted_byte, guess_key):
-    # ciphertext : text chiffré sous forme d'un tableau de 16 octets
-    # targeted_byte : n° de l'octet visé
-    # guess_key : k10
-    # retourne l'entrée de la Sbox au dernier tour de l'AES pour l'octet du ciphertext concerné
-    return inv_s_box[ciphertext[targeted_byte]^guess_key[targeted_byte]]
+def sbox_input_last_round(ciphertext_value, key_value):
+    return inv_sbox[ciphertext_value^key_value]
+
+def sbox_input_first_round(ciphertext_value, key_value):  # Pour traces hardware
+    # à modifier pour retourner la valeur d'entrée de la Sbox au premier tour
+    return inv_sbox[ciphertext_value^key_value]
+
+def leakage_model_first_round(plaintext, key_value, target_byte): # mode 0 Damien
+    res = np.zeros (plaintext.shape[1], dtype=np.uint8)
+    for i in range (len(res)):
+        res[i] = hamming_weight(sbox_output_first_round(plaintext[target_byte, i], key_value))
+    return res
+
+def leakage_model_last_round(ciphertext, key_value, target_byte): # mode 1 Damien
+    res = np.zeros (ciphertext.shape[1], dtype=np.uint8)
+    inv_mix_col = [0,5,10,15,4,9,14,3,8,13,2,7,12,1,6,11]
+    for i in range (len(res)):
+        res[i] = hamming_weight(ciphertext[inv_mix_col[target_byte],i]^sbox_input_first_round(ciphertext[target_byte, i], key_value))
+    return res
 
 class AES:
     """
